@@ -1,0 +1,10 @@
+  if(path[0]==='parts') {
+    const service = new PartService(new SqlitePartRepository(db));
+    if(method==='GET') {
+      return json(await service.read(key?'real':mode(url.searchParams) as PartMode,key));
+    }
+    if(method==='POST'||method==='PUT') {
+      const saved=await service.save(await body(request),method==='POST'?'create':'update',method==='POST'?mode(url.searchParams) as PartMode:'real',key);
+      return json(saved,method==='POST'?201:200);
+    }
+  }
