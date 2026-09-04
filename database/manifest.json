@@ -1,0 +1,21 @@
+{
+  "kind": "empty-schema-not-production-backup",
+  "source": "migrations/0001_initial.sql + drizzle/*.sql",
+  "tables": [
+    "admin_accounts",
+    "admin_sessions",
+    "chat_threads",
+    "chat_turns",
+    "demo_items",
+    "file_chunks",
+    "inspections",
+    "model_uploads",
+    "parts",
+    "reviews",
+    "runs",
+    "settings",
+    "stored_files"
+  ],
+  "row_count": 0,
+  "contains_credentials": false
+}
