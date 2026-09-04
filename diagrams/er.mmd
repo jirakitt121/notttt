@@ -1,0 +1,66 @@
+erDiagram
+    parts ||--o{ inspections : part_id
+    inspections ||--o{ runs : inspection_id
+    inspections ||--o{ reviews : inspection_id
+    chat_threads ||--o{ chat_turns : thread_id
+    parts {
+        TEXT id PK
+        TEXT code UK
+        TEXT name
+    }
+    inspections {
+        TEXT id PK
+        TEXT part_id FK
+        TEXT original_file
+        TEXT review
+    }
+    runs {
+        TEXT id PK
+        TEXT inspection_id FK
+        TEXT status
+        TEXT detections
+    }
+    reviews {
+        TEXT id PK
+        TEXT inspection_id FK
+        TEXT decision
+    }
+    chat_threads {
+        TEXT id PK
+        TEXT owner_id
+    }
+    chat_turns {
+        TEXT id PK
+        TEXT thread_id FK
+        TEXT status
+    }
+    stored_files {
+        TEXT id PK
+        INTEGER bytes
+    }
+    file_chunks {
+        TEXT file_id PK
+        INTEGER idx PK
+        TEXT content
+    }
+    settings {
+        TEXT key PK
+        TEXT value
+    }
+    model_uploads {
+        TEXT id PK
+        TEXT value
+    }
+    demo_items {
+        TEXT entity_id PK
+        TEXT kind
+    }
+    admin_accounts {
+        INTEGER id PK
+        TEXT owner_id
+        TEXT username
+    }
+    admin_sessions {
+        TEXT token_hash PK
+        TEXT owner_id
+    }

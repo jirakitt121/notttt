@@ -1,0 +1,40 @@
+classDiagram
+    class Part {
+        -fields
+        +fromInput(input) Part
+        +values() string[]
+    }
+    class PartService {
+        -store PartStore
+        +read(mode, key)
+        +save(input, operation, mode, key)
+    }
+    class PartStore {
+        <<interface>>
+        +list(mode, key)
+        +find(key)
+        +insert(key, part, stamp, mode)
+        +update(key, part, stamp)
+    }
+    class SqlitePartRepository {
+        -db Database
+        +list(mode, key)
+        +find(key)
+        +insert(key, part, stamp, mode)
+        +update(key, part, stamp)
+    }
+    class Database {
+        <<interface>>
+        +prepare(sql) Statement
+        +batch(statements)
+    }
+    class LocalSqliteDatabase {
+        +prepare(sql)
+        +batch(statements)
+        +close()
+    }
+    PartService --> Part : validates
+    PartService o-- PartStore : injected
+    SqlitePartRepository ..|> PartStore : implements
+    SqlitePartRepository --> Database : prepared queries
+    LocalSqliteDatabase ..|> Database : structural adapter
