@@ -1,0 +1,478 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Nut Inspect — SQLite, OOP และ Workflow</title><style>
+@font-face{font-family:NutThai;src:url(fonts/NotoSansThai.ttf)}*{box-sizing:border-box}body{margin:0;font:17px/1.8 NutThai,system-ui,sans-serif;color:#233047;background:#f3f6fb}main{max-width:1120px;margin:auto;padding:36px 28px 80px;background:white}nav{display:flex;gap:12px;flex-wrap:wrap;border-bottom:1px solid #ccd6e4;padding-bottom:18px}a{color:#294f9c}h1,h2{line-height:1.4;color:#294f9c}h2{margin-top:42px}p{overflow-wrap:anywhere}.table{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:16px}td,th{border:1px solid #d9e1eb;padding:10px;text-align:left;vertical-align:top}th{background:#eef3fb}pre{overflow:auto;padding:16px;background:#f3f5f9;font-size:15px;line-height:1.6}code{font-family:ui-monospace,monospace;font-size:.9em}img{max-width:100%;height:auto;border:1px solid #d9e1eb}details{margin:12px 0;padding:14px;border:1px solid #d9e1eb}summary{cursor:pointer;color:#294f9c;font-weight:bold}figure{margin:28px 0}figcaption{font-size:15px;color:#586b84}@media(max-width:600px){main{padding:20px 16px}body{font-size:16px}}@media print{body{background:white}main{max-width:none}nav{display:none}figure{break-before:page}img{max-height:240mm;width:auto}}
+</style></head><body><main><nav><a href="#guide">คู่มือ</a><a href="#diagrams">ผังทั้งสาม</a><a href="#dictionary">ข้อมูลทุกตาราง</a><a href="#validation">ผลทดสอบ</a></nav><section id="guide"><h1>Nut Inspect — SQLite + OOP + Workflow</h1>
+<p>ชุดประกอบโปรเจกต์ อ้างอิงโค้ดเว็บ Nut Inspect วันที่ 3 กันยายน 2026</p>
+<h2>เริ่มจากไฟล์ไหน</h2>
+<ul>
+<li>แตก ZIP ก่อน แล้วเปิด <code>guide.html</code> ด้วย Chrome หรือ Edge เพื่ออ่านคู่มือและดูผัง</li>
+<li>ดู <code>diagrams/workflow.png</code>, <code>oop.png</code> และ <code>er.png</code> เพื่อนำไปใส่รายงานหรือสไลด์ มี SVG สำหรับขยายภาพ และ Mermaid <code>.mmd</code> สำหรับแก้ไขผัง</li>
+<li><code>database/nut-inspect-empty.sqlite</code> เป็นฐานข้อมูล SQLite จริง 13 ตาราง แต่ไม่มีข้อมูลผู้ใช้ รหัสผ่าน คีย์ รูปภาพ หรือผลตรวจจริง</li>
+<li><code>database/schema.sql</code> ใช้สร้างฐานข้อมูลใหม่ที่มีโครงสร้างเดียวกัน ห้ามนำไปรันเป็น migration ทับฐานข้อมูลเว็บจริง</li>
+<li><code>oop/parts.ts</code> คือคลาสที่ API จัดการน็อตของเว็บใช้จริง ส่วน <code>oop/parts.mjs</code> เป็นโค้ดชุดเดียวกันที่แปลงให้รันทดลองด้วย Node.js</li>
+</ul>
+<p>นี่ไม่ใช่ไฟล์สำรองข้อมูลจริง และไม่ใช่ ZIP ของเว็บทั้งโปรเจกต์ การเปิดไฟล์ SQLite ในเครื่องจะไม่เชื่อมต่อหรือแก้ไขข้อมูลบนเว็บไซต์</p>
+<h2>ทดลอง OOP โดยไม่ใช้ API Key</h2>
+<p>ใช้ Node.js รุ่น 22.13 ขึ้นไป ไม่ต้อง <code>npm install</code> สำหรับชุดทดลองนี้</p>
+<p>เปิด Terminal ในโฟลเดอร์ที่แตก ZIP แล้วรัน:</p>
+<pre><code>
+node oop/demo.mjs
+
+node tests/test_bundle.mjs
+
+</code></pre>
+<p>คำสั่งแรกจะสร้าง <code>nut-inspect-demo.sqlite</code> ข้างคู่มือ และเพิ่มน็อตตัวอย่าง 1 รายการในโหมดสาธิต ไม่มีภาพหรือผลตรวจจำลอง ไม่แตะไฟล์ฐานข้อมูลว่าง หากไฟล์สาธิตมีอยู่แล้ว คำสั่งจะหยุดโดยไม่เขียนทับ</p>
+<p>คำสั่งทดสอบใช้ฐานข้อมูลชั่วคราว ตรวจการเพิ่ม/แก้ไข รหัสซ้ำ ข้อมูลสาธิตแยกจากข้อมูลจริง และความคงอยู่หลังเปิดฐานข้อมูลใหม่ ไม่เชื่อมต่ออินเทอร์เน็ต</p>
+<h2>SQLite ของเว็บจริงอยู่ตรงไหน</h2>
+<p>เว็บออนไลน์ใช้ D1 ซึ่งมีเอนจิน SQLite ฝั่งเซิร์ฟเวอร์ ไม่ได้เก็บฐานข้อมูลหลักไว้ในมือถือ เครื่องของผู้ใช้ส่งคำขอให้เซิร์ฟเวอร์อ่าน/บันทึกฐานข้อมูล ส่วนโมเดล ONNX ตรวจภาพในเบราว์เซอร์</p>
+<p>ไฟล์ว่างนี้สร้างจาก <code>migrations/0001_initial.sql</code> และ <code>drizzle/*.sql</code> ของเว็บ โดยใช้ฐานข้อมูลในหน่วยความจำเพื่อรวมโครงสร้างหลัง migration ไม่ได้ดาวน์โหลดฐานข้อมูลจริง ไม่มีการแก้ schema ของเว็บในงานรอบนี้</p>
+<div class="table"><table><thead><tr><th>ตาราง</th><th>หน้าที่</th></tr></thead><tbody>
+<tr><td>parts</td><td>รหัส ชื่อ ขนาด วัสดุ Lot และหมายเหตุน็อต</td></tr>
+<tr><td>inspections</td><td>ภาพที่บันทึก พร้อมข้อมูลน็อต ณ เวลานั้น และสถานะผู้ตรวจ</td></tr>
+<tr><td>runs</td><td>ผลตรวจแต่ละครั้ง โมเดล ค่า confidence กล่องตำแหน่ง และไฟล์ภาพผลตรวจ</td></tr>
+<tr><td>reviews</td><td>ประวัติการยืนยัน PASS/FAIL/รอยืนยัน</td></tr>
+<tr><td>stored_files</td><td>ชนิดและขนาดของไฟล์ที่เก็บ</td></tr>
+<tr><td>file_chunks</td><td>เนื้อไฟล์แบ่งเป็นชิ้นและเก็บแบบ base64 ตามโค้ดปัจจุบัน</td></tr>
+<tr><td>settings</td><td>การตั้งค่า เช่น โมเดลจริง</td></tr>
+<tr><td>model_uploads</td><td>ข้อมูลการอัปโหลดโมเดลที่ยังดำเนินการอยู่</td></tr>
+<tr><td>demo_items</td><td>ระบุว่าน็อตหรือภาพใดเป็นข้อมูลสาธิต</td></tr>
+<tr><td>admin_accounts</td><td>ข้อมูลบัญชีแอดมินและค่าที่ใช้ตรวจรหัสผ่าน (ไฟล์นี้ไม่มีบัญชี)</td></tr>
+<tr><td>admin_sessions</td><td>เซสชันแอดมินแบบเก็บค่าแฮช (ไฟล์นี้ไม่มีเซสชัน)</td></tr>
+<tr><td>chat_threads</td><td>หัวข้อสนทนาและเจ้าของ</td></tr>
+<tr><td>chat_turns</td><td>คำถาม คำตอบ และสถานะการตอบ</td></tr>
+</tbody></table></div>
+<p>ดูชนิดข้อมูล คอลัมน์ Primary Key, Foreign Key และดัชนีครบทุกตารางได้ใน <code>database/data-dictionary.json</code> และในคู่มือ HTML</p>
+<h2>OOP ที่นำไปใช้จริง</h2>
+<p>งานรอบนี้จัดส่วน <strong>จัดการรายการน็อต</strong> เป็น OOP ไม่ได้อ้างว่าทั้งเว็บถูกเขียนใหม่เป็นคลาส</p>
+<div class="table"><table><thead><tr><th>องค์ประกอบ</th><th>หน้าที่</th><th>จุดที่แสดงหลัก OOP</th></tr></thead><tbody>
+<tr><td>Part</td><td>รับและตรวจค่ารหัส/ชื่อ/ขนาด/วัสดุ/Lot/หมายเหตุ</td><td>Encapsulation: ซ่อนค่าภายในและคืนสำเนาค่า</td></tr>
+<tr><td>PartService</td><td>อ่าน เพิ่ม และแก้ไขรายการ พร้อมจัดการรหัสซ้ำและรายการไม่พบ</td><td>Composition: รับ repository, ตัวสร้าง ID และนาฬิกาผ่าน constructor</td></tr>
+<tr><td>PartStore</td><td>สัญญาเมธอด list/find/insert/update</td><td>Abstraction: service ไม่ต้องรู้ SQL หรือผู้ให้บริการฐานข้อมูล</td></tr>
+<tr><td>SqlitePartRepository</td><td>ใช้ prepared statements และ batch กับฐานข้อมูล</td><td>Implementation ของ PartStore; ไม่ต่อข้อความที่กรอกเข้า SQL</td></tr>
+<tr><td>LocalSqliteDatabase</td><td>ตัวแปลงฐานข้อมูล SQLite ในเครื่องให้ตรงกับ Database interface</td><td>Polymorphism: ใช้คลาสธุรกิจเดียวกับ D1 โดยเปลี่ยน adapter</td></tr>
+<tr><td>HttpError</td><td>ข้อผิดพลาดที่มี HTTP status</td><td>Inheritance: extends Error; API ยังคงจัดรูปแบบข้อผิดพลาดเดิม</td></tr>
+</tbody></table></div>
+<p><code>PartStore</code> และ <code>Database</code> เป็น TypeScript interface ไม่ใช่ตาราง SQL และไม่ใช่คลาสที่สร้าง object ด้วย <code>new</code> ได้ ส่วน <code>Detector</code> ใน Python เป็นอีกเวอร์ชันสำหรับรันในเครื่อง ไม่ใช่โมเดลที่เว็บออนไลน์เรียกใน workflow นี้</p>
+<p>ตัวอย่างโค้ดจากเส้นทางที่เว็บใช้:</p>
+<pre><code>
+const service = new PartService(new SqlitePartRepository(db));
+
+const saved = await service.save(input, 'create', 'real');
+
+</code></pre>
+<p>จุดเชื่อมจริงอยู่ที่ <code>worker/api.ts</code> ในสาขา <code>/api/parts</code> โดย <code>worker/index.ts</code> ตรวจสิทธิ์แอดมินก่อนเข้า API ตามเดิม ตัวอย่างใน ZIP เรียกคลาสโดยตรงเพื่อสาธิต OOP ไม่ใช่เว็บเซิร์ฟเวอร์ที่เปิดให้ผู้อื่นเรียกได้</p>
+<h2>Workflow และข้อควรระวัง</h2>
+<ul>
+<li>เริ่มจากการยืนยันเจ้าของเว็บและล็อกอินแอดมิน ผู้ไม่ผ่านสิทธิ์ไม่ควรเข้าถึง API หรือรูปภาพ</li>
+<li>เลือกโหมดจริง/สาธิตก่อนทำงาน ภาพสาธิตไม่ใช่หลักฐานคุณภาพชิ้นงานจริง</li>
+<li>บันทึกภาพได้แม้ไม่มีโมเดล โดยคงสถานะรอตรวจ ไม่ใช่ศูนย์ตำหนิหรือ PASS</li>
+<li>เมื่อโมเดลพร้อม ผู้ใช้กดตรวจในเบราว์เซอร์ แล้วเซิร์ฟเวอร์ตรวจรูปแบบผลลัพธ์และบันทึกผล ไม่ใช่การรัน inference ซ้ำบนเซิร์ฟเวอร์</li>
+<li><code>not_detected</code> คือไม่พบคลาสตำหนิที่เลือก ไม่ใช่การรับรองว่าชิ้นงานผ่านมาตรฐาน</li>
+<li>PASS/FAIL เป็นการยืนยันของผู้ตรวจ แยกจากผลโมเดล หากตรวจใหม่สถานะยืนยันจะกลับไปรอ แต่ประวัติเดิมยังเก็บอยู่</li>
+<li>ผู้ช่วยแชทอ่านคู่มือและข้อมูลที่บันทึกไว้ ไม่ต้องใช้ API Key ไม่ตรวจภาพหรือแก้ไขข้อมูลแทนผู้ใช้</li>
+</ul>
+<h2>ขอบเขตผังฐานข้อมูล</h2>
+<p>ผัง ER แสดงความสัมพันธ์ Foreign Key ที่ schema บังคับจริง 4 เส้น: parts → inspections, inspections → runs, inspections → reviews และ chat_threads → chat_turns</p>
+<p>ความสัมพันธ์ไฟล์ ภาพ ข้อมูลสาธิต และเจ้าของเซสชันบางส่วนควบคุมด้วยโค้ด ไม่ได้ประกาศ Foreign Key ใน schema ปัจจุบัน จึงแสดงเป็นหมายเหตุแยก ไม่วาดให้เข้าใจผิดว่าฐานข้อมูลบังคับให้</p>
+<h2>ผลทดสอบ</h2>
+<p>ดู <code>VALIDATION.md</code> สำหรับรายการทดสอบและข้อจำกัด ชุดนี้ไม่ได้ให้ค่าความแม่นยำของโมเดลจริง เพราะยังไม่มีโมเดลที่เทรนกับชิ้นงานจริงของคุณ</p></section><section id="diagrams"><h2>ผังประกอบจากโค้ด</h2><figure><a href="diagrams/workflow.svg"><img src="diagrams/workflow.png" alt="Nut Inspect workflow"></a><figcaption>workflow: PNG สำหรับรายงาน · กดภาพเพื่อเปิด SVG · มีต้นฉบับ .mmd ในโฟลเดอร์ diagrams</figcaption></figure><figure><a href="diagrams/oop.svg"><img src="diagrams/oop.png" alt="Nut Inspect oop"></a><figcaption>oop: PNG สำหรับรายงาน · กดภาพเพื่อเปิด SVG · มีต้นฉบับ .mmd ในโฟลเดอร์ diagrams</figcaption></figure><figure><a href="diagrams/er.svg"><img src="diagrams/er.png" alt="Nut Inspect er"></a><figcaption>er: PNG สำหรับรายงาน · กดภาพเพื่อเปิด SVG · มีต้นฉบับ .mmd ในโฟลเดอร์ diagrams</figcaption></figure></section><section id="dictionary"><h2>Data Dictionary: 13 ตาราง</h2><p>สร้างอัตโนมัติจาก PRAGMA ของ SQLite จริง ค่า NOT NULL ที่ประกาศกับ Primary Key เป็นคนละช่อง จึงแสดงตาม schema โดยไม่เติมข้อจำกัดที่ไม่มีอยู่จริง</p><details><summary>admin_accounts (11 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>id</td><td>INTEGER</td><td>1</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>owner_id</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>username</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>password_hash</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>password_salt</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>iterations</td><td>INTEGER</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>attempts</td><td>INTEGER</td><td>0</td><td>1</td><td>0</td></tr><tr><td>window_ends</td><td>INTEGER</td><td>0</td><td>1</td><td>0</td></tr><tr><td>created_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>must_change_password</td><td>INTEGER</td><td>0</td><td>1</td><td>0</td></tr><tr><td>credential_version</td><td>INTEGER</td><td>0</td><td>1</td><td>1</td></tr></tbody></table></div><p>Foreign keys</p><pre>[]</pre><p>Indexes</p><pre>[]</pre></details>
+<details><summary>admin_sessions (5 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>token_hash</td><td>TEXT</td><td>1</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>owner_id</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>created_at</td><td>INTEGER</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>expires_at</td><td>INTEGER</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>credential_version</td><td>INTEGER</td><td>0</td><td>1</td><td>1</td></tr></tbody></table></div><p>Foreign keys</p><pre>[]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;admin_sessions_owner_created_idx&quot;,
+    &quot;unique&quot;: 0,
+    &quot;origin&quot;: &quot;c&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 1,
+        &quot;name&quot;: &quot;owner_id&quot;
+      },
+      {
+        &quot;seqno&quot;: 1,
+        &quot;cid&quot;: 2,
+        &quot;name&quot;: &quot;created_at&quot;
+      }
+    ]
+  },
+  {
+    &quot;seq&quot;: 1,
+    &quot;name&quot;: &quot;sqlite_autoindex_admin_sessions_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;token_hash&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>chat_threads (7 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>id</td><td>TEXT</td><td>1</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>owner_id</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>title</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>created_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>updated_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>active_request_id</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>active_until</td><td>INTEGER</td><td>0</td><td>1</td><td>0</td></tr></tbody></table></div><p>Foreign keys</p><pre>[]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;chat_threads_owner_updated_idx&quot;,
+    &quot;unique&quot;: 0,
+    &quot;origin&quot;: &quot;c&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 1,
+        &quot;name&quot;: &quot;owner_id&quot;
+      },
+      {
+        &quot;seqno&quot;: 1,
+        &quot;cid&quot;: 4,
+        &quot;name&quot;: &quot;updated_at&quot;
+      }
+    ]
+  },
+  {
+    &quot;seq&quot;: 1,
+    &quot;name&quot;: &quot;sqlite_autoindex_chat_threads_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;id&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>chat_turns (11 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>id</td><td>TEXT</td><td>1</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>thread_id</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>owner_id</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>question</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>answer</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>status</td><td>TEXT</td><td>0</td><td>1</td><td>'pending'</td></tr><tr><td>model</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>created_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>finished_at</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>error</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>truncated</td><td>INTEGER</td><td>0</td><td>1</td><td>0</td></tr></tbody></table></div><p>Foreign keys</p><pre>[
+  {
+    &quot;id&quot;: 0,
+    &quot;seq&quot;: 0,
+    &quot;table&quot;: &quot;chat_threads&quot;,
+    &quot;from&quot;: &quot;thread_id&quot;,
+    &quot;to&quot;: &quot;id&quot;,
+    &quot;on_update&quot;: &quot;NO ACTION&quot;,
+    &quot;on_delete&quot;: &quot;CASCADE&quot;,
+    &quot;match&quot;: &quot;NONE&quot;
+  }
+]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;chat_turns_thread_created_idx&quot;,
+    &quot;unique&quot;: 0,
+    &quot;origin&quot;: &quot;c&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 1,
+        &quot;name&quot;: &quot;thread_id&quot;
+      },
+      {
+        &quot;seqno&quot;: 1,
+        &quot;cid&quot;: 7,
+        &quot;name&quot;: &quot;created_at&quot;
+      }
+    ]
+  },
+  {
+    &quot;seq&quot;: 1,
+    &quot;name&quot;: &quot;chat_turns_owner_created_idx&quot;,
+    &quot;unique&quot;: 0,
+    &quot;origin&quot;: &quot;c&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 2,
+        &quot;name&quot;: &quot;owner_id&quot;
+      },
+      {
+        &quot;seqno&quot;: 1,
+        &quot;cid&quot;: 7,
+        &quot;name&quot;: &quot;created_at&quot;
+      }
+    ]
+  },
+  {
+    &quot;seq&quot;: 2,
+    &quot;name&quot;: &quot;sqlite_autoindex_chat_turns_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;id&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>demo_items (3 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>entity_id</td><td>TEXT</td><td>1</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>kind</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>sample_id</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr></tbody></table></div><p>Foreign keys</p><pre>[]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;sqlite_autoindex_demo_items_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;entity_id&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>file_chunks (4 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>file_id</td><td>TEXT</td><td>1</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>idx</td><td>INTEGER</td><td>2</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>bytes</td><td>INTEGER</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>content</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr></tbody></table></div><p>Foreign keys</p><pre>[]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;sqlite_autoindex_file_chunks_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;file_id&quot;
+      },
+      {
+        &quot;seqno&quot;: 1,
+        &quot;cid&quot;: 1,
+        &quot;name&quot;: &quot;idx&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>inspections (14 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>id</td><td>TEXT</td><td>1</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>part_id</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>code_snapshot</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>name_snapshot</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>lot</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>inspector</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>notes</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>original_file</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>width</td><td>INTEGER</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>height</td><td>INTEGER</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>created_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>review</td><td>TEXT</td><td>0</td><td>1</td><td>'pending'</td></tr><tr><td>review_note</td><td>TEXT</td><td>0</td><td>1</td><td>''</td></tr><tr><td>reviewed_at</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr></tbody></table></div><p>Foreign keys</p><pre>[
+  {
+    &quot;id&quot;: 0,
+    &quot;seq&quot;: 0,
+    &quot;table&quot;: &quot;parts&quot;,
+    &quot;from&quot;: &quot;part_id&quot;,
+    &quot;to&quot;: &quot;id&quot;,
+    &quot;on_update&quot;: &quot;NO ACTION&quot;,
+    &quot;on_delete&quot;: &quot;NO ACTION&quot;,
+    &quot;match&quot;: &quot;NONE&quot;
+  }
+]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;inspections_part&quot;,
+    &quot;unique&quot;: 0,
+    &quot;origin&quot;: &quot;c&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 1,
+        &quot;name&quot;: &quot;part_id&quot;
+      },
+      {
+        &quot;seqno&quot;: 1,
+        &quot;cid&quot;: 10,
+        &quot;name&quot;: &quot;created_at&quot;
+      }
+    ]
+  },
+  {
+    &quot;seq&quot;: 1,
+    &quot;name&quot;: &quot;sqlite_autoindex_inspections_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;id&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>model_uploads (2 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>id</td><td>TEXT</td><td>1</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>value</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr></tbody></table></div><p>Foreign keys</p><pre>[]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;sqlite_autoindex_model_uploads_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;id&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>parts (9 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>id</td><td>TEXT</td><td>1</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>code</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>name</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>size</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>material</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>lot</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>notes</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>created_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>updated_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr></tbody></table></div><p>Foreign keys</p><pre>[]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;sqlite_autoindex_parts_2&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;u&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 1,
+        &quot;name&quot;: &quot;code&quot;
+      }
+    ]
+  },
+  {
+    &quot;seq&quot;: 1,
+    &quot;name&quot;: &quot;sqlite_autoindex_parts_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;id&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>reviews (5 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>id</td><td>TEXT</td><td>1</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>inspection_id</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>decision</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>note</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>created_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr></tbody></table></div><p>Foreign keys</p><pre>[
+  {
+    &quot;id&quot;: 0,
+    &quot;seq&quot;: 0,
+    &quot;table&quot;: &quot;inspections&quot;,
+    &quot;from&quot;: &quot;inspection_id&quot;,
+    &quot;to&quot;: &quot;id&quot;,
+    &quot;on_update&quot;: &quot;NO ACTION&quot;,
+    &quot;on_delete&quot;: &quot;NO ACTION&quot;,
+    &quot;match&quot;: &quot;NONE&quot;
+  }
+]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;sqlite_autoindex_reviews_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;id&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>runs (10 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>id</td><td>TEXT</td><td>1</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>inspection_id</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>status</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>model_name</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>model_sha</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>config</td><td>TEXT</td><td>0</td><td>1</td><td>'{}'</td></tr><tr><td>detections</td><td>TEXT</td><td>0</td><td>1</td><td>'[]'</td></tr><tr><td>annotated_file</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>error</td><td>TEXT</td><td>0</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>created_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr></tbody></table></div><p>Foreign keys</p><pre>[
+  {
+    &quot;id&quot;: 0,
+    &quot;seq&quot;: 0,
+    &quot;table&quot;: &quot;inspections&quot;,
+    &quot;from&quot;: &quot;inspection_id&quot;,
+    &quot;to&quot;: &quot;id&quot;,
+    &quot;on_update&quot;: &quot;NO ACTION&quot;,
+    &quot;on_delete&quot;: &quot;NO ACTION&quot;,
+    &quot;match&quot;: &quot;NONE&quot;
+  }
+]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;runs_inspection&quot;,
+    &quot;unique&quot;: 0,
+    &quot;origin&quot;: &quot;c&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 1,
+        &quot;name&quot;: &quot;inspection_id&quot;
+      },
+      {
+        &quot;seqno&quot;: 1,
+        &quot;cid&quot;: 9,
+        &quot;name&quot;: &quot;created_at&quot;
+      }
+    ]
+  },
+  {
+    &quot;seq&quot;: 1,
+    &quot;name&quot;: &quot;sqlite_autoindex_runs_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;id&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>settings (2 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>key</td><td>TEXT</td><td>1</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>value</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr></tbody></table></div><p>Foreign keys</p><pre>[]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;sqlite_autoindex_settings_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;key&quot;
+      }
+    ]
+  }
+]</pre></details>
+<details><summary>stored_files (5 คอลัมน์)</summary><div class="table"><table><thead><tr><th>Column</th><th>Type</th><th>PK ลำดับ</th><th>NOT NULL ที่ประกาศ</th><th>Default</th></tr></thead><tbody><tr><td>id</td><td>TEXT</td><td>1</td><td>0</td><td>NULL / ไม่กำหนด</td></tr><tr><td>mime</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>bytes</td><td>INTEGER</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>chunks</td><td>INTEGER</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr><tr><td>created_at</td><td>TEXT</td><td>0</td><td>1</td><td>NULL / ไม่กำหนด</td></tr></tbody></table></div><p>Foreign keys</p><pre>[]</pre><p>Indexes</p><pre>[
+  {
+    &quot;seq&quot;: 0,
+    &quot;name&quot;: &quot;sqlite_autoindex_stored_files_1&quot;,
+    &quot;unique&quot;: 1,
+    &quot;origin&quot;: &quot;pk&quot;,
+    &quot;partial&quot;: 0,
+    &quot;columns&quot;: [
+      {
+        &quot;seqno&quot;: 0,
+        &quot;cid&quot;: 0,
+        &quot;name&quot;: &quot;id&quot;
+      }
+    ]
+  }
+]</pre></details></section><section id="validation"><h1>ผลทดสอบ SQLite + OOP + Workflow</h1>
+<p>วันที่ตรวจ: 3 กันยายน 2026</p>
+<div class="table"><table><thead><tr><th>รายการ</th><th>ผล</th></tr></thead><tbody>
+<tr><td>TypeScript (<code>npm run check</code>)</td><td>ผ่าน</td></tr>
+<tr><td>สร้างเว็บสำหรับใช้งานจริง (production build)</td><td>ผ่าน</td></tr>
+<tr><td>ฐานข้อมูลว่าง 13 ตาราง ตรงกับ migrations ของเว็บ</td><td>ผ่าน</td></tr>
+<tr><td>รัน schema.sql เพื่อสร้างฐานข้อมูลใหม่</td><td>ผ่าน</td></tr>
+<tr><td>PRAGMA integrity_check / foreign_key_check</td><td>ผ่าน</td></tr>
+<tr><td>ไม่มีข้อมูลผู้ใช้หรือข้อมูลลับในฐานข้อมูลที่ส่งมอบ</td><td>ผ่าน — ทุกตารางว่าง</td></tr>
+<tr><td>ดัชนี inspections_part ถูกใช้ใน query plan ที่ทดสอบ</td><td>ผ่าน</td></tr>
+<tr><td>OOP: ตรวจข้อมูล ซ่อนค่า และเปลี่ยน store สำหรับทดสอบ</td><td>ผ่าน</td></tr>
+<tr><td>เพิ่ม แก้ไข อ่าน รหัสซ้ำ และรายการไม่พบ</td><td>ผ่าน</td></tr>
+<tr><td>แยกข้อมูลจริงและสาธิต</td><td>ผ่าน</td></tr>
+<tr><td>ข้อความลักษณะ SQL injection ถูกเก็บเป็นข้อมูล</td><td>ผ่าน</td></tr>
+<tr><td>การเพิ่มข้อมูลสาธิตสำเร็จ/ย้อนกลับเป็นชุดเดียวกัน</td><td>ผ่าน</td></tr>
+<tr><td>ข้อมูลคงอยู่หลังปิดและเปิด SQLite ใหม่</td><td>ผ่าน</td></tr>
+<tr><td>API เดิม: รูปภาพ snapshot ข้อมูลน็อต รีวิว CSV/ZIP</td><td>ผ่าน</td></tr>
+<tr><td>แอดมิน: รหัสผ่าน เซสชัน สิทธิ์ CSRF และออกจากระบบ</td><td>ผ่าน</td></tr>
+<tr><td>แชทไม่ใช้คีย์: แหล่งข้อมูล ขอบเขต ประวัติ และกรณีผิดพลาด</td><td>ผ่าน</td></tr>
+<tr><td>ชุดส่งมอบแยกโฟลเดอร์ (<code>node tests/test_bundle.mjs</code>)</td><td>ตัวจัดแพ็กเกจตรวจและยอมสร้างชุดส่งมอบต่อเมื่อผ่าน</td></tr>
+</tbody></table></div>
+<h2>วิธีทดสอบซ้ำ</h2>
+<p>ในโปรเจกต์เต็ม ใช้ <code>npm run check</code>, <code>npm run test:architecture</code> และ <code>npm run test:api</code></p>
+<p>ใน ZIP นี้ ใช้ <code>node tests/test_bundle.mjs</code> โดยต้องมี Node.js 22.13 ขึ้นไป ไม่ต้องติดตั้ง package เพิ่ม และไม่เชื่อมต่อบริการภายนอก</p>
+<h2>ข้อจำกัด</h2>
+<ul>
+<li>ใช้ข้อมูลทดสอบและฐานข้อมูลชั่วคราว ไม่ทดสอบด้วยบัญชี/ข้อมูลการตรวจจริงของผู้ใช้</li>
+<li>ไม่ได้ทดสอบผ่านเบราว์เซอร์หรืออุปกรณ์จริงในรอบนี้</li>
+<li>ผัง PNG ตรวจการจัดวางและความอ่านง่ายแล้ว ไม่ใช่ภาพหน้าจอเว็บ</li>
+<li>ยังไม่ได้วัดความแม่นยำกับโมเดลที่ผู้ใช้เทรนจริง และไม่ได้เพิ่มโมเดลตรวจชิ้นงานจริง</li>
+<li>งานนี้เปลี่ยนโครงสร้างโค้ดส่วนรายการน็อต ไม่มี migration ใหม่ ไม่มีการย้ายหรือลบฐานข้อมูลเว็บ</li>
+<li>SQLite ใน ZIP ไม่ซิงก์กับ D1 และไม่ใช่ระบบล็อกอินหรือเว็บเต็มที่พร้อม deploy แยกต่างหาก</li>
+</ul></section></main></body></html>

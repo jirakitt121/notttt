@@ -1,0 +1,29 @@
+{
+  "kind": "sqlite-oop-workflow-release",
+  "generated_at": "2026-09-03T04:19:33.232Z",
+  "base_commit": "52867f6816dbf11637a442f09cb1e0533279b321",
+  "note": "Base commit plus SHA-256 of exact source files included. No production data exported.",
+  "source_sha256": {
+    "docs/architecture/README_TH.md": "2ad39040bb72b45cbaf2c7c5fba0ead136f0935ddb5035c556dd11b024a0ee75",
+    "docs/architecture/VALIDATION.md": "93397ce8acdc8d5b92237bc8b8569fdfa58bc7077fa73ac948b1db247768c26b",
+    "docs/architecture/demo.mjs": "a3fa30156868c16fb59db960726f2b5b5f7ece5963f9f59a5debf7edd459afdf",
+    "docs/architecture/test_bundle.mjs": "74e148515c45e3604e9c5c4cb7f4565319309ffed4bc3e73f68ad319c9e9ffa5",
+    "scripts/sqlite-database.mjs": "4d75e4af412b4171bea5e69f6d5faca76bb6fa100e99c5d99fe5b80365b12d49",
+    "worker/parts.ts": "b5145c5f235f638db72728e287160fd4b6c187f48209071706dbe6589a7e5e71",
+    "worker/errors.ts": "bb3487e3480a064970279bbf37c4360075acbc9ad407aa5a89fd95c83ca36df9",
+    "worker/types.ts": "df45b3f572a839fec0b004ff33b833232e2ac9930e4ef87fc25bb019e07df949",
+    "worker/files.ts": "499791e0e18ac3f3c256273e6af8b9b9b20342bc9cdc14c0e0784a7832cbc550",
+    "worker/demo-data.ts": "4e7a308329ebe7aacfd2fcdbac553df8538742733dd092c3c898059f9cfc2683",
+    "public/static/demo/manifest.json": "e7f016cf7a49c970855d2b82860ae708c1cb145ef7da1e84af82bcbefc831eb2",
+    "static/NotoSansThai.ttf": "5a1c559bb539583c8a1fd99d1c5b9491e5e14478c9cd2bd0970d5c3096cc9ef8",
+    "static/FONT-LICENSE.txt": "2e98fd23a52d253db8612cd5942c8f2ff4111b21d2367050fdca91d8ccc374a0",
+    "migrations/0001_initial.sql": "0475d6a9ee9aca30d663b18fd3a7ecb3c19c8123dee438839c56be0094f7d2a5",
+    "drizzle/0000_admin_chat.sql": "b7e20dbd77c7871d79f153a0898824294a44e1d6f5b60f6c8df749beb46d7530",
+    "drizzle/0001_inspection_demo.sql": "d98f7c0dbe5fa0f702b111e145206aeca04117755857e2d96cfa4101d6fa3b2c",
+    "drizzle/0002_admin_password_login.sql": "e540e1852ed6b7a90e102ffd189e79941626fa448c2eb9e1f62ffbb95036e6ee",
+    "drizzle/0003_admin_bootstrap_credentials.sql": "a6df8649938890b49c88737aa2dcdbc78c11c31d5f71a412d18a87f3e229320b",
+    "docs/architecture/workflow.mmd": "530b853457bfd2c3adc6d4fda279527c3db1cc204727215c05ce19e4f48f051f",
+    "docs/architecture/oop.mmd": "4410e395ace58df312d0f513a33b44111eba878b663cf549e017340a208b514c",
+    "docs/architecture/er.mmd": "639110b73a77cd36fef62c055bd335e41ccd6ac29b20a0d78007321d1d886552"
+  }
+}
